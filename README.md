@@ -1,3 +1,8 @@
+# Requirements
+  - Pillow
+  - SciPy
+  - Tensorflow
+
 # Main dataset
 - Kaggle https://www.kaggle.com/datasets/meliodassourav/traffic-violation-dataset-v3?resource=download
 - Many problem:
