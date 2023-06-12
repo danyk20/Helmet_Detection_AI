@@ -26,47 +26,57 @@ def augment_pictures(multiplier, path):
                 break
 
 
-from keras.optimizers.legacy import Adam
+def get_model():
+    model = tf.keras.models.Sequential([
+        # 1st conv
+        tf.keras.layers.Conv2D(64, kernel_size=11, strides=8, activation='relu', input_shape=(64, 64, 3)),
+        tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.MaxPooling2D(2, strides=2),
+        # 2nd conv
+        tf.keras.layers.Conv2D(256, (11, 11), strides=(1, 1), activation='relu', padding="same"),
+        tf.keras.layers.BatchNormalization(),
+        # 3rd conv
+        tf.keras.layers.Conv2D(384, (3, 3), strides=(1, 1), activation='relu', padding="same"),
+        tf.keras.layers.BatchNormalization(),
+        # 4th conv
+        tf.keras.layers.Conv2D(384, (3, 3), strides=(1, 1), activation='relu', padding="same"),
+        tf.keras.layers.BatchNormalization(),
+        # 5th Conv
+        tf.keras.layers.Conv2D(256, (3, 3), strides=(1, 1), activation='relu', padding="same"),
+        tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.MaxPooling2D(2, strides=(2, 2)),
+        # To Flatten layer
+        tf.keras.layers.Flatten(),
+        # To FC layer 1
+        tf.keras.layers.Dense(4096, activation='relu'),
+        tf.keras.layers.Dropout(0.5),
+        # To FC layer 2
+        tf.keras.layers.Dense(4096, activation='relu'),
+        tf.keras.layers.Dropout(0.5),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+    # get description
+    model.summary()
 
-model = tf.keras.models.Sequential([
-    # 1st conv
-    tf.keras.layers.Conv2D(64, kernel_size=11, strides=8, activation='relu', input_shape=(64, 64, 3)),
-    tf.keras.layers.BatchNormalization(),
-    tf.keras.layers.MaxPooling2D(2, strides=2),
-    # 2nd conv
-    tf.keras.layers.Conv2D(256, (11, 11), strides=(1, 1), activation='relu', padding="same"),
-    tf.keras.layers.BatchNormalization(),
-    # 3rd conv
-    tf.keras.layers.Conv2D(384, (3, 3), strides=(1, 1), activation='relu', padding="same"),
-    tf.keras.layers.BatchNormalization(),
-    # 4th conv
-    tf.keras.layers.Conv2D(384, (3, 3), strides=(1, 1), activation='relu', padding="same"),
-    tf.keras.layers.BatchNormalization(),
-    # 5th Conv
-    tf.keras.layers.Conv2D(256, (3, 3), strides=(1, 1), activation='relu', padding="same"),
-    tf.keras.layers.BatchNormalization(),
-    tf.keras.layers.MaxPooling2D(2, strides=(2, 2)),
-    # To Flatten layer
-    tf.keras.layers.Flatten(),
-    # To FC layer 1
-    tf.keras.layers.Dense(4096, activation='relu'),
-    tf.keras.layers.Dropout(0.5),
-    # To FC layer 2
-    tf.keras.layers.Dense(4096, activation='relu'),
-    tf.keras.layers.Dropout(0.5),
-    tf.keras.layers.Dense(1, activation='sigmoid')
-])
-# get description
-model.summary()
-model.compile(
-    optimizer=Adam(learning_rate=0.005),
-    loss='binary_crossentropy',
-    metrics=['accuracy']
-)
-train_data = []
-train_labels = []
-hist = model.fit(train_data, train_labels,
-                 validation_split=0.2,
-                 epochs=50)
+
+def compile_model(model):
+    from keras.optimizers.legacy import Adam
+    model.compile(
+        optimizer=Adam(learning_rate=0.005),
+        loss='binary_crossentropy',
+        metrics=['accuracy']
+    )
+
+
+def fit_model(model):
+    train_data = []
+    train_labels = []
+    hist = model.fit(train_data, train_labels,
+                     validation_split=0.2,
+                     epochs=50)
+
 
 # augment_pictures(4, 'test_data')
+model = get_model()
+compile_model(model)
+fit_model(model)
