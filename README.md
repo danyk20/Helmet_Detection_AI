@@ -58,3 +58,19 @@
 - Rescale output to have sample mean and standard deviation of 1
 - Make learning faster
 - tf.keras.layers.BatchNormalization()
+
+# Image preprocessing pipeline:
+1. Manual picture filtering and adjustment
+    - Filter only images that belong to the category
+    - Crop only person on the motorcycle with minimum background
+    - Add additional images from the internet
+2. Convert to the same ratio and size
+   - Convert all images to 128 by 128 pixels
+   - Keep original ratio and fill missing pixels with white pixels
+3. Data augmentation
+    - From every image create 4 by:
+      - horizontal flip
+      - rotation up to 15 degrees
+      - shear transformation
+      - move to any side 
+      - zoom

@@ -5,14 +5,14 @@ from os.path import isfile, join
 
 
 def augment_pictures(multiplier, path):
-    train_data_generator = ImageDataGenerator(rotation_range=15,
+    train_data_generator = ImageDataGenerator(rotation_range=35,
                                               width_shift_range=0.15,
-                                              height_shift_range=0.15,
+                                              height_shift_range=0.05,
                                               shear_range=0.2,
-                                              zoom_range=0.2,
+                                              zoom_range=0.15,
                                               horizontal_flip=True,
                                               fill_mode='reflect')
-    pictures = [f for f in listdir(path) if isfile(join(path, f)) and f.split(".")[-1] == 'jpg']
+    pictures = [f for f in listdir(path) if isfile(join(path, f)) and f.split(".")[-1] == 'png']
     for picture in pictures:
         pic = load_img(path + '/' + picture)
         pic_array = img_to_array(pic)
@@ -20,7 +20,7 @@ def augment_pictures(multiplier, path):
 
         count = 0
         for batch in train_data_generator.flow(pic_array, batch_size=1, save_to_dir=path + '/generated_images',
-                                               save_prefix='generated', save_format='jpeg'):
+                                               save_prefix='generated', save_format='jpg'):
             count += 1
             if count == multiplier:
                 break
@@ -76,7 +76,7 @@ def fit_model(model):
                      epochs=50)
 
 
-# augment_pictures(4, 'test_data')
-model = get_model()
-compile_model(model)
-fit_model(model)
+augment_pictures(4, 'data_copy/nohelmet_b')
+# model = get_model()
+# compile_model(model)
+# fit_model(model)
