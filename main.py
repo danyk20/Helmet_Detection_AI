@@ -3,7 +3,7 @@ from keras_preprocessing.image import ImageDataGenerator, load_img, img_to_array
 from os import listdir
 from os.path import isfile, join
 
-
+batch_size = 10
 def augment_pictures(multiplier, path):
     train_data_generator = ImageDataGenerator(rotation_range=35,
                                               width_shift_range=0.15,
@@ -29,7 +29,7 @@ def augment_pictures(multiplier, path):
 def get_model():
     model = tf.keras.models.Sequential([
         # 1st conv
-        tf.keras.layers.Conv2D(64, kernel_size=11, strides=8, activation='relu', input_shape=(64, 64, 3)),
+        tf.keras.layers.Conv2D(64, kernel_size=11, strides=8, activation='relu', input_shape=(128, 128, 3)),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.MaxPooling2D(2, strides=2),
         # 2nd conv
@@ -57,6 +57,7 @@ def get_model():
     ])
     # get description
     model.summary()
+    return model
 
 
 def compile_model(model):
@@ -68,15 +69,33 @@ def compile_model(model):
     )
 
 
-def fit_model(model):
-    train_data = []
-    train_labels = []
-    hist = model.fit(train_data, train_labels,
+def fit_model(model, train_generator, validation_generator):
+    hist = model.fit(train_generator,
                      validation_split=0.2,
+                     steps_per_epoch=train_generator.samples // batch_size,
+                     validation_data=validation_generator,
+                     validation_steps=validation_generator.samples // batch_size,
                      epochs=50)
 
 
 augment_pictures(4, 'data_copy/nohelmet_b')
-# model = get_model()
-# compile_model(model)
-# fit_model(model)
+model = get_model()
+compile_model(model)
+datagen = ImageDataGenerator(rescale=1. / 255)
+train_generator = datagen.flow_from_directory(
+    directory='/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/Final_data',
+    target_size=(128, 128),
+    batch_size=20,
+    class_mode='binary',
+    shuffle=True,
+    subset='training'
+)
+validation_generator = datagen.flow_from_directory(
+    directory='/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/Final_data',
+    target_size=(128, 128),
+    batch_size=20,
+    class_mode='binary',
+    shuffle=True,
+    subset='validation'
+)
+fit_model(model, train_generator, validation_generator)
