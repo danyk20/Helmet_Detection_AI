@@ -1,11 +1,13 @@
-import tensorflow as tf
 from keras import Sequential
 from keras.src.layers import Conv2D, MaxPooling2D, Flatten, Dense
 from keras_preprocessing.image import ImageDataGenerator, load_img, img_to_array
 from os import listdir
 from os.path import isfile, join
+import matplotlib.pyplot as plt
 
 batch_size = 20
+
+
 def augment_pictures(multiplier, path):
     train_data_generator = ImageDataGenerator(rotation_range=35,
                                               width_shift_range=0.15,
@@ -63,6 +65,43 @@ def fit_model(model, train_generator, validation_generator):
     return hist
 
 
+def plot_graph(hist):
+    acc = hist.history['accuracy']
+    val_acc = hist.history['val_accuracy']
+    loss = hist.history['loss']
+    val_loss = hist.history['val_loss']
+
+    epochs = range(len(acc))
+
+    plt.plot(epochs, acc, 'r', label='Training accuracy')
+    plt.plot(epochs, val_acc, 'b', label='Validation accuracy')
+    plt.title('Training and validation accuracy')
+    plt.legend(loc=0)
+    plt.figure()
+    plt.show()
+
+
+def demo():
+    import numpy as np
+
+    from keras.preprocessing import image
+
+    # predicting images
+    path = "/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/Final_data/nohelmet_c/generated_0_52.jpg"
+    img = image.load_img(path, target_size=(128, 128))
+    x = image.img_to_array(img)
+    x = np.expand_dims(x, axis=0)
+
+    images = np.vstack([x])
+    classes = model.predict(images, batch_size=1)
+    print(classes[0])
+    if classes[0] > 0.5:
+        print("is with helmet")
+    else:
+        print(" is without helmet")
+    plt.imshow(img)
+
+
 augment_pictures(4, 'data_copy/nohelmet_b')
 model = get_model()
 compile_model(model)
@@ -84,37 +123,5 @@ validation_generator = datagen.flow_from_directory(
     subset='validation'
 )
 hist = fit_model(model, train_generator, validation_generator)
-
-import matplotlib.pyplot as plt
-acc = hist.history['accuracy']
-val_acc = hist.history['val_accuracy']
-loss = hist.history['loss']
-val_loss = hist.history['val_loss']
-
-epochs = range(len(acc))
-
-plt.plot(epochs, acc, 'r', label='Training accuracy')
-plt.plot(epochs, val_acc, 'b', label='Validation accuracy')
-plt.title('Training and validation accuracy')
-plt.legend(loc=0)
-plt.figure()
-plt.show()
-
-
-import numpy as np
-
-from keras.preprocessing import image
-# predicting images
-path = "/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/Final_data/nohelmet_c/generated_0_52.jpg"
-img = image.load_img(path, target_size=(128, 128))
-x = image.img_to_array(img)
-x = np.expand_dims(x, axis=0)
-
-images = np.vstack([x])
-classes = model.predict(images, batch_size=1)
-print(classes[0])
-if classes[0]>0.5:
-    print("is with helmet")
-else:
-    print(" is without helmet")
-plt.imshow(img)
+plot_graph(hist)
+demo()
