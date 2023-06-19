@@ -4,6 +4,11 @@ from keras_preprocessing.image import ImageDataGenerator, load_img, img_to_array
 from os import listdir
 from os.path import isfile, join
 import matplotlib.pyplot as plt
+import keras.models as models
+from keras.optimizers.legacy import Adam
+import numpy as np
+
+from keras.preprocessing import image
 
 TEST_IMAGE_PATH = "/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/Final_data/nohelmet_c/generated_0_52.jpg"
 
@@ -12,7 +17,7 @@ IMAGE_SIZE = 128
 IMAGE_COLORS = 3
 LEARNING_RATE = 0.001
 BATCH_SIZE = 20
-EPOCHS = 10
+EPOCHS = 100
 VALIDATION_SPLIT = 0.2
 METRIC = 'accuracy'
 LOSS_FUNCTION = 'binary_crossentropy'
@@ -78,7 +83,6 @@ def get_model():
 
 
 def compile_model(raw_model):
-    from keras.optimizers.legacy import Adam
     raw_model.compile(
         optimizer=Adam(learning_rate=LEARNING_RATE),
         loss=LOSS_FUNCTION,
@@ -113,10 +117,7 @@ def plot_graph(hist):
 
 
 def demo():
-    import numpy as np
-
-    from keras.preprocessing import image
-
+    model = models.load_model("trained_model.h5")
     # predicting images
     path = TEST_IMAGE_PATH
     img = image.load_img(path, target_size=(IMAGE_SIZE, IMAGE_SIZE))
@@ -133,7 +134,7 @@ def demo():
     plt.imshow(img)
 
 
-def main():
+def save_model():
     augment_pictures(MULTIPLIER, 'data_copy/nohelmet_b')
     model = get_model()
     compile_model(model)
@@ -155,8 +156,8 @@ def main():
         subset='validation'
     )
     hist = fit_model(model, train_generator, validation_generator)
+    model.save("trained_model.h5", include_optimizer=True)
     plot_graph(hist)
-    demo()
 
 
-main()
+demo()
