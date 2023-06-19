@@ -1,3 +1,5 @@
+import os
+
 from keras import Sequential
 from keras.src.layers import Conv2D, MaxPooling2D, Flatten, Dense
 from keras_preprocessing.image import ImageDataGenerator, load_img, img_to_array
@@ -7,10 +9,12 @@ import matplotlib.pyplot as plt
 import keras.models as models
 from keras.optimizers.legacy import Adam
 import numpy as np
+from PIL import Image
 
 from keras.preprocessing import image
 
-TEST_IMAGE_PATH = "/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/Final_data/nohelmet_c/generated_0_52.jpg"
+TEST_IMAGE_PATH = "/Users/danielkosc/Downloads/98ba696f856a667823c92863569d638d45c413c7_large.jpg"
+TEST_IMAGE_PATH_2 = "/Users/danielkosc/Downloads/170816mahray6i7341retouchedflatv3.jpg"
 
 # model configuration
 IMAGE_SIZE = 128
@@ -119,7 +123,7 @@ def plot_graph(hist):
 def demo():
     model = models.load_model("trained_model.h5")
     # predicting images
-    path = TEST_IMAGE_PATH
+    path = preprocessing(TEST_IMAGE_PATH)
     img = image.load_img(path, target_size=(IMAGE_SIZE, IMAGE_SIZE))
     x = image.img_to_array(img)
     x = np.expand_dims(x, axis=0)
@@ -128,9 +132,9 @@ def demo():
     classes = model.predict(images, batch_size=1)
     print(classes[0])
     if classes[0] > 0.5:
-        print("There is driver without helmet!")
-    else:
         print("There is driver with helmet!")
+    else:
+        print("There is driver without helmet!")
     plt.imshow(img)
 
 
@@ -158,6 +162,31 @@ def save_model():
     hist = fit_model(model, train_generator, validation_generator)
     model.save("trained_model.h5", include_optimizer=True)
     plot_graph(hist)
+
+
+def preprocessing(image_path):
+    image = Image.open(image_path)
+
+    # Resize the image while maintaining the aspect ratio
+    image.thumbnail((IMAGE_SIZE, IMAGE_SIZE), Image.ANTIALIAS)
+
+    # Create a new image with white background
+    new_image = Image.new("RGB", (IMAGE_SIZE, IMAGE_SIZE), (255, 255, 255))
+
+    # Calculate the position to paste the resized image
+    position = (((IMAGE_SIZE, IMAGE_SIZE)[0] - image.size[0]) // 2, ((IMAGE_SIZE, IMAGE_SIZE)[1] - image.size[1]) // 2)
+
+    # Paste the resized image onto the new image
+    new_image.paste(image, position)
+
+    # Save the new image
+    image_name = image_path.split('/')[-1]
+    image_name = 'preprocessed_' + image_name
+    output_path = os.path.join('/'.join(image_path.split('/')[:-1]), image_name)
+    new_image.save(output_path)
+
+    print(f"Resized and saved {image_name}")
+    return output_path
 
 
 demo()
