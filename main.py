@@ -5,64 +5,95 @@ from os import listdir
 from os.path import isfile, join
 import matplotlib.pyplot as plt
 
-batch_size = 20
+TEST_IMAGE_PATH = "/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/Final_data/nohelmet_c/generated_0_52.jpg"
+
+# model configuration
+IMAGE_SIZE = 128
+IMAGE_COLORS = 3
+LEARNING_RATE = 0.001
+BATCH_SIZE = 20
+EPOCHS = 10
+VALIDATION_SPLIT = 0.2
+METRIC = 'accuracy'
+LOSS_FUNCTION = 'binary_crossentropy'
+
+# image generation
+RESCALE = 1
+SHUFFLE = True
+CLASS_MODE = 'binary'
+DATA_PATH = '/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/Final_data'
+
+# augmentation configuration
+MULTIPLIER = 4
+ROTATION = 35
+ZOOM = 0.15
+SHEAR = 0.2
+HEIGHT_SHIFT = 0.05
+WIDTH_SHIFT = 0.15
+FILL_MODE = 'reflect'
+HORIZONTAL_FLIP = True
+GENERATED_DIR_PATH = '/generated_images'
+PHOTO_PREFIX = 'generated'
+INPUT_FORMAT = 'png'
+OUTPUT_FORMAT = 'jpg'
 
 
 def augment_pictures(multiplier, path):
-    train_data_generator = ImageDataGenerator(rotation_range=35,
-                                              width_shift_range=0.15,
-                                              height_shift_range=0.05,
-                                              shear_range=0.2,
-                                              zoom_range=0.15,
-                                              horizontal_flip=True,
-                                              fill_mode='reflect')
-    pictures = [f for f in listdir(path) if isfile(join(path, f)) and f.split(".")[-1] == 'png']
+    train_data_generator = ImageDataGenerator(rotation_range=ROTATION,
+                                              width_shift_range=WIDTH_SHIFT,
+                                              height_shift_range=HEIGHT_SHIFT,
+                                              shear_range=SHEAR,
+                                              zoom_range=ZOOM,
+                                              horizontal_flip=HORIZONTAL_FLIP,
+                                              fill_mode=FILL_MODE
+                                              )
+    pictures = [f for f in listdir(path) if isfile(join(path, f)) and f.split(".")[-1] == INPUT_FORMAT]
     for picture in pictures:
         pic = load_img(path + '/' + picture)
         pic_array = img_to_array(pic)
         pic_array = pic_array.reshape((1,) + pic_array.shape)
 
         count = 0
-        for batch in train_data_generator.flow(pic_array, batch_size=batch_size, save_to_dir=path + '/generated_images',
-                                               save_prefix='generated', save_format='jpg'):
+        for _ in train_data_generator.flow(pic_array, batch_size=BATCH_SIZE, save_to_dir=path + GENERATED_DIR_PATH,
+                                           save_prefix=PHOTO_PREFIX, save_format=OUTPUT_FORMAT):
             count += 1
             if count == multiplier:
                 break
 
 
 def get_model():
-    model = Sequential()
-    model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 3)))
-    model.add(MaxPooling2D((2, 2)))
-    model.add(Conv2D(64, (3, 3), activation='relu'))
-    model.add(MaxPooling2D((2, 2)))
-    model.add(Conv2D(128, (3, 3), activation='relu'))
-    model.add(MaxPooling2D((2, 2)))
-    model.add(Flatten())
-    model.add(Dense(128, activation='relu'))
-    model.add(Dense(1, activation='sigmoid'))
+    result = Sequential()
+    result.add(Conv2D(32, (3, 3), activation='relu', input_shape=(IMAGE_SIZE, IMAGE_SIZE, IMAGE_COLORS)))
+    result.add(MaxPooling2D((2, 2)))
+    result.add(Conv2D(64, (3, 3), activation='relu'))
+    result.add(MaxPooling2D((2, 2)))
+    result.add(Conv2D(128, (3, 3), activation='relu'))
+    result.add(MaxPooling2D((2, 2)))
+    result.add(Flatten())
+    result.add(Dense(128, activation='relu'))
+    result.add(Dense(1, activation='sigmoid'))
     # get description
-    model.summary()
-    return model
+    result.summary()
+    return result
 
 
-def compile_model(model):
+def compile_model(raw_model):
     from keras.optimizers.legacy import Adam
-    model.compile(
-        optimizer=Adam(learning_rate=0.001),
-        loss='binary_crossentropy',
-        metrics=['accuracy']
+    raw_model.compile(
+        optimizer=Adam(learning_rate=LEARNING_RATE),
+        loss=LOSS_FUNCTION,
+        metrics=[METRIC]
     )
 
 
-def fit_model(model, train_generator, validation_generator):
-    hist = model.fit(train_generator,
-                     validation_split=0.2,
-                     steps_per_epoch=train_generator.samples // batch_size,
-                     validation_data=validation_generator,
-                     validation_steps=validation_generator.samples // batch_size,
-                     epochs=10)
-    return hist
+def fit_model(empty_model, train_generator, validation_generator):
+    result = empty_model.fit(train_generator,
+                             validation_split=VALIDATION_SPLIT,
+                             steps_per_epoch=train_generator.samples // BATCH_SIZE,
+                             validation_data=validation_generator,
+                             validation_steps=validation_generator.samples // BATCH_SIZE,
+                             epochs=EPOCHS)
+    return result
 
 
 def plot_graph(hist):
@@ -87,8 +118,8 @@ def demo():
     from keras.preprocessing import image
 
     # predicting images
-    path = "/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/Final_data/nohelmet_c/generated_0_52.jpg"
-    img = image.load_img(path, target_size=(128, 128))
+    path = TEST_IMAGE_PATH
+    img = image.load_img(path, target_size=(IMAGE_SIZE, IMAGE_SIZE))
     x = image.img_to_array(img)
     x = np.expand_dims(x, axis=0)
 
@@ -96,32 +127,36 @@ def demo():
     classes = model.predict(images, batch_size=1)
     print(classes[0])
     if classes[0] > 0.5:
-        print("is with helmet")
+        print("There is driver without helmet!")
     else:
-        print(" is without helmet")
+        print("There is driver with helmet!")
     plt.imshow(img)
 
 
-augment_pictures(4, 'data_copy/nohelmet_b')
-model = get_model()
-compile_model(model)
-datagen = ImageDataGenerator(rescale=1, validation_split=0.2)
-train_generator = datagen.flow_from_directory(
-    directory='/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/Final_data',
-    target_size=(128, 128),
-    batch_size=batch_size,
-    class_mode='binary',
-    shuffle=True,
-    subset='training'
-)
-validation_generator = datagen.flow_from_directory(
-    directory='/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/Final_data',
-    target_size=(128, 128),
-    batch_size=batch_size,
-    class_mode='binary',
-    shuffle=True,
-    subset='validation'
-)
-hist = fit_model(model, train_generator, validation_generator)
-plot_graph(hist)
-demo()
+def main():
+    augment_pictures(MULTIPLIER, 'data_copy/nohelmet_b')
+    model = get_model()
+    compile_model(model)
+    datagen = ImageDataGenerator(rescale=RESCALE, validation_split=VALIDATION_SPLIT)
+    train_generator = datagen.flow_from_directory(
+        directory=DATA_PATH,
+        target_size=(IMAGE_SIZE, IMAGE_SIZE),
+        batch_size=BATCH_SIZE,
+        class_mode=CLASS_MODE,
+        shuffle=SHUFFLE,
+        subset='training'
+    )
+    validation_generator = datagen.flow_from_directory(
+        directory=DATA_PATH,
+        target_size=(IMAGE_SIZE, IMAGE_SIZE),
+        batch_size=BATCH_SIZE,
+        class_mode=CLASS_MODE,
+        shuffle=SHUFFLE,
+        subset='validation'
+    )
+    hist = fit_model(model, train_generator, validation_generator)
+    plot_graph(hist)
+    demo()
+
+
+main()
