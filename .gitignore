@@ -2,3 +2,4 @@ data/*
 data.zip
 venv
 filtered_data
+playground.py
