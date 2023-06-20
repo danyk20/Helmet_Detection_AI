@@ -16,13 +16,19 @@ from keras.preprocessing import image
 
 from utils import resize_images
 
-TEST_IMAGE_PATH = "/Users/danielkosc/Downloads/98ba696f856a667823c92863569d638d45c413c7_large.jpg"
-TEST_IMAGE_PATH_2 = "/Users/danielkosc/Downloads/170816mahray6i7341retouchedflatv3.jpg"
+# paths
+TRAINED_MODEL = 'trained_model.h5'
+HELMET_INPUT = 'train/helmet'
+HELMET_TRAINING = 'data/helmet'
+NO_HELMET_INPUT = 'train/no_helmet'
+NO_HELMET_TRAINING = 'data/no_helmet'
+TEST_IMAGE_PATH = "test/no_helmet.jpg"
+TEST_IMAGE_PATH_2 = "test/helmet.jpg"
 
 # model configuration
 IMAGE_SIZE = 128
 IMAGE_COLORS = 3
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.005
 BATCH_SIZE = 20
 EPOCHS = 100
 VALIDATION_SPLIT = 0.2
@@ -150,7 +156,7 @@ def plot_graph(hist):
 
 
 def demo():
-    model = models.load_model("trained_model.h5")
+    model = models.load_model(TRAINED_MODEL)
     # predicting images
     path = preprocessing(TEST_IMAGE_PATH)
     img = image.load_img(path, target_size=(IMAGE_SIZE, IMAGE_SIZE))
@@ -188,7 +194,7 @@ def save_model():
         subset='validation'
     )
     hist = fit_model(model, train_generator, validation_generator)
-    model.save("trained_model.h5", include_optimizer=True)
+    model.save(TRAINED_MODEL, include_optimizer=True)
     plot_graph(hist)
 
 
@@ -217,10 +223,10 @@ def preprocessing(image_path):
     return output_path
 
 
-if not os.path.exists('data/no_helmet'):
-    augment_pictures(MULTIPLIER, 'train/no_helmet', 'data/no_helmet')
-if not os.path.exists('data/helmet'):
-    augment_pictures(MULTIPLIER, 'train/helmet', 'data/helmet')
-if not os.path.exists('trained_model.h5'):
+if not os.path.exists(NO_HELMET_TRAINING):
+    augment_pictures(MULTIPLIER, NO_HELMET_INPUT, NO_HELMET_TRAINING)
+if not os.path.exists(HELMET_TRAINING):
+    augment_pictures(MULTIPLIER, HELMET_INPUT, HELMET_TRAINING)
+if not os.path.exists(TRAINED_MODEL):
     save_model()
 demo()
