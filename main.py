@@ -10,8 +10,11 @@ import keras.models as models
 from keras.optimizers.legacy import Adam
 import numpy as np
 from PIL import Image
+from pathlib import Path
 
 from keras.preprocessing import image
+
+from utils import resize_images
 
 TEST_IMAGE_PATH = "/Users/danielkosc/Downloads/98ba696f856a667823c92863569d638d45c413c7_large.jpg"
 TEST_IMAGE_PATH_2 = "/Users/danielkosc/Downloads/170816mahray6i7341retouchedflatv3.jpg"
@@ -30,7 +33,7 @@ LOSS_FUNCTION = 'binary_crossentropy'
 RESCALE = 1
 SHUFFLE = True
 CLASS_MODE = 'binary'
-DATA_PATH = '/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/Final_data'
+DATA_PATH = 'data'
 
 # augmentation configuration
 MULTIPLIER = 4
@@ -41,30 +44,41 @@ HEIGHT_SHIFT = 0.05
 WIDTH_SHIFT = 0.15
 FILL_MODE = 'reflect'
 HORIZONTAL_FLIP = True
-GENERATED_DIR_PATH = '/generated_images'
+# GENERATED_DIR_PATH = '/generated_images'
 PHOTO_PREFIX = 'generated'
-INPUT_FORMAT = 'png'
+ALLOWED_INPUT_FORMATS = ['png', 'jpg']
 OUTPUT_FORMAT = 'jpg'
 
 
-def augment_pictures(multiplier, path):
-    train_data_generator = ImageDataGenerator(rotation_range=ROTATION,
-                                              width_shift_range=WIDTH_SHIFT,
-                                              height_shift_range=HEIGHT_SHIFT,
-                                              shear_range=SHEAR,
-                                              zoom_range=ZOOM,
-                                              horizontal_flip=HORIZONTAL_FLIP,
-                                              fill_mode=FILL_MODE
-                                              )
-    pictures = [f for f in listdir(path) if isfile(join(path, f)) and f.split(".")[-1] == INPUT_FORMAT]
+def augment_pictures(multiplier, path, train_dir_path):
+    # Change all pictures to uniform size
+    resized_pictures_path: str = '/'.join(path.split('/')[:-1])
+    resized_pictures_path += '/' + 'resized_' + path.split('/')[-1]
+    resize_images(path, resized_pictures_path, (IMAGE_SIZE, IMAGE_SIZE))
+
+    # augment
+    generator = ImageDataGenerator(rotation_range=ROTATION,
+                                   width_shift_range=WIDTH_SHIFT,
+                                   height_shift_range=HEIGHT_SHIFT,
+                                   shear_range=SHEAR,
+                                   zoom_range=ZOOM,
+                                   horizontal_flip=HORIZONTAL_FLIP,
+                                   fill_mode=FILL_MODE
+                                   )
+    pictures = [f for f in listdir(resized_pictures_path) if
+                isfile(join(resized_pictures_path, f)) and f.split(".")[-1] in ALLOWED_INPUT_FORMATS]
+    Path(train_dir_path).mkdir(parents=True, exist_ok=True)
+    generated_pictures = 0
     for picture in pictures:
-        pic = load_img(path + '/' + picture)
+        print('generated pictures: ' + str(generated_pictures) + '/' + str(len(pictures)))
+        generated_pictures += 1
+        pic = load_img(resized_pictures_path + '/' + picture)
         pic_array = img_to_array(pic)
         pic_array = pic_array.reshape((1,) + pic_array.shape)
-
         count = 0
-        for _ in train_data_generator.flow(pic_array, batch_size=BATCH_SIZE, save_to_dir=path + GENERATED_DIR_PATH,
-                                           save_prefix=PHOTO_PREFIX, save_format=OUTPUT_FORMAT):
+        for _ in generator.flow(pic_array, batch_size=BATCH_SIZE,
+                                save_to_dir=train_dir_path,
+                                save_prefix=PHOTO_PREFIX, save_format=OUTPUT_FORMAT):
             count += 1
             if count == multiplier:
                 break
@@ -112,13 +126,26 @@ def plot_graph(hist):
 
     epochs = range(len(acc))
 
+    plt.figure(figsize=(10, 5))  # Adjust the figure size if needed
+
+    plt.subplot(1, 2, 1)  # Create a subplot for the accuracy
     plt.plot(epochs, acc, 'r', label='Training accuracy')
-    plt.plot(epochs, loss, 'g', label='Training loss')
     plt.plot(epochs, val_acc, 'b', label='Validation accuracy')
-    plt.plot(epochs, val_loss, 'y', label='Validation loss')
     plt.title('Training and validation accuracy')
-    plt.legend(loc=0)
-    plt.figure()
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend(loc='lower right')
+
+    plt.subplot(1, 2, 2)  # Create a subplot for the loss
+    plt.plot(epochs, loss, 'g', label='Training loss')
+    plt.plot(epochs, val_loss, 'y', label='Validation loss')
+    plt.title('Training and validation loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend(loc='upper right')
+
+    plt.tight_layout()  # Adjust spacing between subplots
+
     plt.show()
 
 
@@ -141,7 +168,6 @@ def demo():
 
 
 def save_model():
-    augment_pictures(MULTIPLIER, 'data_copy/nohelmet_b')
     model = get_model()
     compile_model(model)
     datagen = ImageDataGenerator(rescale=RESCALE, validation_split=VALIDATION_SPLIT)
@@ -191,4 +217,10 @@ def preprocessing(image_path):
     return output_path
 
 
+if not os.path.exists('data/no_helmet'):
+    augment_pictures(MULTIPLIER, 'train/no_helmet', 'data/no_helmet')
+if not os.path.exists('data/helmet'):
+    augment_pictures(MULTIPLIER, 'train/helmet', 'data/helmet')
+if not os.path.exists('trained_model.h5'):
+    save_model()
 demo()
