@@ -113,7 +113,9 @@ def plot_graph(hist):
     epochs = range(len(acc))
 
     plt.plot(epochs, acc, 'r', label='Training accuracy')
+    plt.plot(epochs, loss, 'g', label='Training loss')
     plt.plot(epochs, val_acc, 'b', label='Validation accuracy')
+    plt.plot(epochs, val_loss, 'y', label='Validation loss')
     plt.title('Training and validation accuracy')
     plt.legend(loc=0)
     plt.figure()
@@ -165,19 +167,19 @@ def save_model():
 
 
 def preprocessing(image_path):
-    image = Image.open(image_path)
+    selected_image = Image.open(image_path)
 
     # Resize the image while maintaining the aspect ratio
-    image.thumbnail((IMAGE_SIZE, IMAGE_SIZE), Image.ANTIALIAS)
+    selected_image.thumbnail((IMAGE_SIZE, IMAGE_SIZE), Image.ANTIALIAS)
 
     # Create a new image with white background
     new_image = Image.new("RGB", (IMAGE_SIZE, IMAGE_SIZE), (255, 255, 255))
 
     # Calculate the position to paste the resized image
-    position = (((IMAGE_SIZE, IMAGE_SIZE)[0] - image.size[0]) // 2, ((IMAGE_SIZE, IMAGE_SIZE)[1] - image.size[1]) // 2)
+    position = ((IMAGE_SIZE - selected_image.size[0]) // 2, (IMAGE_SIZE - selected_image.size[1]) // 2)
 
     # Paste the resized image onto the new image
-    new_image.paste(image, position)
+    new_image.paste(selected_image, position)
 
     # Save the new image
     image_name = image_path.split('/')[-1]
