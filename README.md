@@ -31,78 +31,87 @@
 
 - binary_crossentropy as loss since we have only 2 categories (helmet yes/no)
 - learning_rate is surprisingly low and higher values case suboptimal solution
-  - lowering learning rate didn't bring any increase in accuracy only longer congregation
+    - lowering learning rate didn't bring any increase in accuracy only longer congregation
 
 ## Learning Rate
 
 ### 0.0001
+
 ![High volatility](resources/Volatility_1.png)
 
 ### 0.00001 (10x times lower)
+
 ![High volatility](resources/Volatility_2.png)
 
 # Convolution layer
+
 - tf.keras.layers.Conv2D(64, kernel_size=11, strides=8, activation='relu', input_shape=(64, 64, 3))
-  - 64 filters
-  - filter is 11x11 pixel big
-  - each filter center is 8 pixels away (it reduces computational time)
-  - input image are 64x64 pixels with rgb (3) colors
+    - 64 filters
+    - filter is 11x11 pixel big
+    - each filter center is 8 pixels away (it reduces computational time)
+    - input image are 64x64 pixels with rgb (3) colors
 
 # Pooling layer
+
 - to reduce number of parameter in the model -> faster training
 - tf.keras.layers.MaxPooling2D(2, strides=2)
-  - 2 size of the pooling window
-    - this will return from 4 pixels (2x2) only one with the max value
-    - not suitable for our problem
-      - helmet is concentrated in small are on the picture
-
+    - 2 size of the pooling window
+        - this will return from 4 pixels (2x2) only one with the max value
+        - not suitable for our problem
+            - helmet is concentrated in small are on the picture
 
 # Dropout
+
 - In each step we ignore some units
 - Strategy to avoid over-fitting
 - Slow down learning -> make it more incrementally careful
 - tf.keras.layers.Dropout(0.5)
-  - we are ignoring every other unit
-  - too much dropout cause that model will never reach the best accuracy
-    - second dropout seems to have only negative effect
-    ![double dropout](resources/double_dropout.png)
+    - we are ignoring every other unit
+    - too much dropout cause that model will never reach the best accuracy
+        - second dropout seems to have only negative effect (the same or worse result, bigger validation loss)
+          ![double dropout](resources/double_dropout.png)
 
 # Batch normalisation
+
 - Rescale output to have sample mean and standard deviation of 1
 - Make learning faster
 - tf.keras.layers.BatchNormalization()
 
 # Image preprocessing pipeline:
+
 1. Manual picture filtering and adjustment
     - Filter only images that belong to the category
     - Crop only person on the motorcycle with minimum background
     - Add additional images from the internet
 2. Convert to the same ratio and size
-   - Convert all images to 128 by 128 pixels
-   - Keep original ratio and fill missing pixels with white pixels
+    - Convert all images to 128 by 128 pixels
+    - Keep original ratio and fill missing pixels with white pixels
 3. Data augmentation
     - From every image create 4 by:
-      - horizontal flip
-      - rotation up to x degrees
-      - shear transformation
-      - move to any side 
-      - zoom
+        - horizontal flip
+        - rotation up to x degrees
+        - shear transformation
+        - move to any side
+        - zoom
 
 # Training:
 
 ## Input size:
 
 ### 96 x 96
+
 - lower than this resolution makes it impossible to distinguish
 - fast training
-- the highest (73%) accuracy achieved 
+- the highest (73%) accuracy achieved
 
 ### 128 x 128
+
 - slightly slower training
 - need to decrease learning rate
-  - the biggest reasonable ~ 0.0001
+    - the biggest reasonable ~ 0.0001
 
 ### 256 x 256
+
 - exponentially slower training
 - surprisingly worse results
 - extremely low learning rate
@@ -111,17 +120,17 @@
 
 20% seems to be a reasonable value but slightly lower or higher number didn't change the result anyway.
 
-- 2192 (80%) images for training 
+- 2192 (80%) images for training
 - 547 (20%) images for validation
 
 ## Epochs
 
-Model seems to learn quickly mainly because of relatively low number of images. There is always some grow up to 10th 
+Model seems to learn quickly mainly because of relatively low number of images. There is always some grow up to 10th
 epoch then it starts to stagnate up to 20th and after that there wasn't any improvement measured.
 
 ## Batch size
 
-Has enormous impact on training duration but no measurable effect on results therefore it good to keep as high as 
+Has enormous impact on training duration but no measurable effect on results therefore it good to keep as high as
 possible base on CPU and GPU -> the more cores it has to higher batch we can effectively use.
 
 ## Shuffle
@@ -264,3 +273,15 @@ Epoch 29/30
 Epoch 30/30
 34/34 [==============================] - 21s 627ms/step - loss: 0.1557 - accuracy: 0.9478 - val_loss: 1.0044 - val_accuracy: 0.7578
 ```
+
+## False Negative:
+
+![False Negative - light reflection](test/helmet_2.jpg)
+
+## False Positive:
+
+![False positive - hair](test/no_helmet_1.jpg)
+![False positive - sunglasses](test/no_helmet_4.jpg)
+
+
+

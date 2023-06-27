@@ -24,14 +24,15 @@ NO_HELMET_INPUT = 'train/no_helmet'
 NO_HELMET_TRAINING = 'data/no_helmet'
 TEST_IMAGE_PATH = "test/helmet_0.jpg"
 TEST_IMAGE_PATH_2 = "test/no_helmet_0.jpg"
-## False negative 1,2
+# False negative 2
+# False positive 1, 4
 
 # model configuration
 IMAGE_SIZE = 96
 IMAGE_COLORS = 3
 LEARNING_RATE = 0.00005
 BATCH_SIZE = 64
-EPOCHS = 40
+EPOCHS = 30
 VALIDATION_SPLIT = 0.2
 METRIC = 'accuracy'
 LOSS_FUNCTION = 'binary_crossentropy'
@@ -110,9 +111,8 @@ def get_model():
     result.add(MaxPooling2D(2, strides=2))
     result.add(Flatten())
     result.add(Dense(2048, activation='relu'))
-    result.add(Dropout(0.5))
+    result.add(Dropout(0.75))
     result.add(Dense(1000, activation='relu'))
-    result.add(Dropout(0.5))
     result.add(Dense(1, activation='sigmoid'))
     # get description
     result.summary()
