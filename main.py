@@ -1,7 +1,7 @@
 import os
 
 from keras import Sequential
-from keras.src.layers import Conv2D, MaxPooling2D, Flatten, Dense
+from keras.src.layers import Conv2D, MaxPooling2D, Flatten, Dense, BatchNormalization, Dropout
 from keras_preprocessing.image import ImageDataGenerator, load_img, img_to_array
 from os import listdir
 from os.path import isfile, join
@@ -22,15 +22,16 @@ HELMET_INPUT = 'train/helmet'
 HELMET_TRAINING = 'data/helmet'
 NO_HELMET_INPUT = 'train/no_helmet'
 NO_HELMET_TRAINING = 'data/no_helmet'
-TEST_IMAGE_PATH = "test/no_helmet.jpg"
-TEST_IMAGE_PATH_2 = "test/helmet.jpg"
+TEST_IMAGE_PATH = "test/helmet_0.jpg"
+TEST_IMAGE_PATH_2 = "test/no_helmet_0.jpg"
+## False negative 1,2
 
 # model configuration
-IMAGE_SIZE = 128
+IMAGE_SIZE = 96
 IMAGE_COLORS = 3
-LEARNING_RATE = 0.005
-BATCH_SIZE = 20
-EPOCHS = 100
+LEARNING_RATE = 0.00005
+BATCH_SIZE = 64
+EPOCHS = 40
 VALIDATION_SPLIT = 0.2
 METRIC = 'accuracy'
 LOSS_FUNCTION = 'binary_crossentropy'
@@ -44,10 +45,10 @@ DATA_PATH = 'data'
 # augmentation configuration
 MULTIPLIER = 4
 ROTATION = 35
-ZOOM = 0.15
+ZOOM = 0.1
 SHEAR = 0.2
-HEIGHT_SHIFT = 0.05
-WIDTH_SHIFT = 0.15
+HEIGHT_SHIFT = 0
+WIDTH_SHIFT = 0.2
 FILL_MODE = 'reflect'
 HORIZONTAL_FLIP = True
 # GENERATED_DIR_PATH = '/generated_images'
@@ -92,14 +93,26 @@ def augment_pictures(multiplier, path, train_dir_path):
 
 def get_model():
     result = Sequential()
-    result.add(Conv2D(32, (3, 3), activation='relu', input_shape=(IMAGE_SIZE, IMAGE_SIZE, IMAGE_COLORS)))
+    result.add(
+        Conv2D(96, kernel_size=11, strides=1, activation='relu', input_shape=(IMAGE_SIZE, IMAGE_SIZE, IMAGE_COLORS)))
+    result.add(BatchNormalization())
     result.add(MaxPooling2D((2, 2)))
-    result.add(Conv2D(64, (3, 3), activation='relu'))
+    result.add(Conv2D(128, (9, 9), strides=1, activation='relu', padding="same"))
+    result.add(BatchNormalization())
+    result.add(MaxPooling2D(2, strides=2))
+    result.add(Conv2D(256, (7, 7), strides=1, activation='relu', padding="same"))
+    result.add(BatchNormalization())
     result.add(MaxPooling2D((2, 2)))
-    result.add(Conv2D(128, (3, 3), activation='relu'))
-    result.add(MaxPooling2D((2, 2)))
+    result.add(Conv2D(256, (5, 5), strides=1, activation='relu', padding="same"))
+    result.add(BatchNormalization())
+    result.add(Conv2D(512, (3, 3), strides=1, activation='relu', padding="same"))
+    result.add(BatchNormalization())
+    result.add(MaxPooling2D(2, strides=2))
     result.add(Flatten())
-    result.add(Dense(128, activation='relu'))
+    result.add(Dense(2048, activation='relu'))
+    result.add(Dropout(0.5))
+    result.add(Dense(1000, activation='relu'))
+    result.add(Dropout(0.5))
     result.add(Dense(1, activation='sigmoid'))
     # get description
     result.summary()
@@ -167,9 +180,9 @@ def demo():
     classes = model.predict(images, batch_size=1)
     print(classes[0])
     if classes[0] > 0.5:
-        print("There is driver with helmet!")
-    else:
         print("There is driver without helmet!")
+    else:
+        print("There is driver with helmet!")
     plt.imshow(img)
 
 
