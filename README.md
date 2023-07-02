@@ -283,5 +283,11 @@ Epoch 30/30
 ![False positive - hair](test/no_helmet_1.jpg)
 ![False positive - sunglasses](test/no_helmet_4.jpg)
 
+# Install Mac Apple Silicon
+
+```shell
+pip3 install keras keras-preprocessing Pillow==9.5.0 matplotlib tensorflow tensorflow-metal scipy
+```
+
 
 
