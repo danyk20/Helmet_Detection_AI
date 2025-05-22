@@ -1,75 +1,101 @@
+import logging
 import os
-import shutil
-from collections import defaultdict
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
+
 from PIL import Image
 
 
-def copy_directory_with_unique_files(directory_path, copy_directory_path):
-    # Create the copy directory if it doesn't exist
-    if not os.path.exists(copy_directory_path):
-        os.makedirs(copy_directory_path)
+def init_logger(log_file: str = "training.log"):
+    """
+    Initialize and configure a logger with both console and file handlers.
 
-    # Create a hashmap to store file sizes as keys and file names as values
-    file_sizes = defaultdict(list)
+    Creates a logger that outputs to both stdout and a specified log file with the following format:
+    TIMESTAMP - LOGLEVEL - MODULE_NAME - FUNCTION_NAME - MESSAGE
 
-    # Iterate over all files in the original directory
-    for root, dirs, files in os.walk(directory_path):
-        for filename in files:
-            file_path = os.path.join(root, filename)
-            size = os.path.getsize(file_path)
-            file_sizes[size].append(filename)
-
-    # Iterate over the hashmap and copy files with unique sizes to the copy directory
-    for size, filenames in file_sizes.items():
-        if len(filenames) == 1:
-            filename = filenames[0]
-            src_file = os.path.join(directory_path, filename)
-            dest_file = os.path.join(copy_directory_path, filename)
-            shutil.copy2(src_file, dest_file)
-
-    print("Copy operation completed successfully!")
+    :param log_file: Path to the log file. Default "training.log" in the current directory
+    :return: Configured logger instance
+    """
+    logging.basicConfig(
+        level=logging.INFO,  # Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        format='%(asctime)s - %(levelname)s - %(module)s - %(funcName)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(log_file)
+        ]
+    )
+    return logging.getLogger("root_logger")
 
 
-def resize_images(input_folder, output_folder, target_size):
-    # Create the output folder if it doesn't exist
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+def ready_to_print(timestamp) -> bool:
+    """
+    Returns True if the current time is greater than the given timestamp.
 
-    file_number = 0
-    # Iterate over all files in the input folder
+    :param timestamp: Given timestamp from datetime.
+    :return: True if the current time is greater than the given timestamp otherwise False.
+    """
+    return datetime.now().timestamp() >= timestamp
+
+
+def resize_images(input_folder: str, output_folder: str, target_size: (int, int), logger: logging.Logger):
+    """
+    Resize images and paste them onto a new image with a white background while keeping their aspect ratio.
+
+    :param input_folder: Path to the folder with images.
+    :param output_folder: Path to the folder where resized images will be saved.
+    :param target_size: (width, height).
+    :param logger: Reference to a root logger object.
+    :return: None
+    """
+    os.makedirs(output_folder, exist_ok=True)
+
+    timestamp = datetime.now().timestamp()
+    file_number: int = 0
+    total_pictures: int = len(os.listdir(input_folder))
     for filename in os.listdir(input_folder):
         file_number += 1
         if filename.endswith(".png") or filename.endswith(".jpg"):
-            # Open the image file
             image_path = os.path.join(input_folder, filename)
-            image = Image.open(image_path)
+            preprocessing(image_path, target_size[0], target_size[1], logger, output_folder,
+                          is_logging=False, output_file_name_prefix="")
+            if ready_to_print(timestamp):
+                logger.info(f'Resized pictures: {file_number}/{total_pictures}')
+                timestamp = (datetime.now() + timedelta(seconds=1)).timestamp()
+        else:
+            logger.info(f'Skipping non supported file: {filename} - {file_number}/{total_pictures}')
+    logger.info(f'All pictures resized: {file_number}/{total_pictures}')
 
-            # Resize the image while maintaining the aspect ratio
-            image.thumbnail(target_size, Image.ANTIALIAS)
+def preprocessing(image_path: str, width: int, height: int, logger: logging.Logger,
+                  output_folder: str, is_logging: bool = True, output_file_name_prefix: str = "preprocessed_"):
+    """
+    Preprocesses an image by resizing it to fit within the specified dimensions
+    while maintaining its aspect ratio and padding it with a white background
+    to match the exact target dimensions.
 
-            # Create a new image with white background
-            new_image = Image.new("RGB", target_size, (255, 255, 255))
+    The processed image is saved in the same directory as the original image,
+    with a filename prefixed by 'preprocessed_'.
 
-            # Calculate the position to paste the resized image
-            position = ((target_size[0] - image.size[0]) // 2, (target_size[1] - image.size[1]) // 2)
 
-            # Paste the resized image onto the new image
-            new_image.paste(image, position)
+    :param image_path: The absolute or relative path to the image file.
+    :param width: The target width for the preprocessed image in pixels.
+    :param height: The target height for the preprocessed image in pixels.
+    :param logger: Reference to a root logger object.
+    :return: The path to the saved preprocessed image.
+    :param output_folder: Path to the folder where resized images will be saved.
+    :param output_file_name_prefix: Prefixed for newly generated filename.
+    :param is_logging: Individual log for each preprocessed image.
+    """
+    selected_image = Image.open(image_path)
+    selected_image.thumbnail((width, height),
+                             Image.Resampling.LANCZOS)  # Resize the image while maintaining the aspect ratio
+    new_image = Image.new("RGB", (width, height), (255, 255, 255))
+    position = ((width - selected_image.size[0]) // 2, (height - selected_image.size[1]) // 2)
+    new_image.paste(selected_image, position)
+    output_path = os.path.join(output_folder if output_folder else Path(image_path).parent,
+                               output_file_name_prefix + os.path.basename(image_path))
+    new_image.save(output_path)
 
-            # Save the new image
-            output_path = os.path.join(output_folder, filename)
-            new_image.save(output_path)
-
-            print(f"Resized and saved {file_number} / {len(os.listdir(input_folder))}")
-
-# Example usage:
-# original_directory = "/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/helmet"
-# copy_directory = "/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/helmet_a"
-# # copy_directory_with_unique_files(original_directory, copy_directory)
-#
-# input_folder = "/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/helmet_a"
-# output_folder = "/Users/danielkosc/Documents/MUNI/Spring2023/ML/project/data_copy/helmet_b"
-# target_size = (128, 128)
-#
-# # Resize the images
-# resize_images(input_folder, output_folder, target_size)
+    if is_logging:
+        logger.info(f"Resized and saved {output_path}")
+    return output_path
